@@ -2,8 +2,4 @@
 
 *hsat* is a SAT Solver, written completely in Haskell. Currently, the only algorithm in use is a brute-force backtracking method. I designed the Module system with the intent of adding more efficient algorithms in the future.
 
-Additionally, the only way the interact with *hsat* is by running 
-
-> stack ghci
-
-and passing in Expressions manually. I plan on written a small DSL to make this process easier.
+The goal is to make satisfiability problems more generalizable by leverage Haskell's type system. You can build expressions of **Boolish** types, and pass them to the solver. The solver then returns either a Failure message, or a map of free variables to the set of values that would satisfy the constraints. More on this to come.
