@@ -1,63 +1,56 @@
 module Hsat.Models.Expression where
 
-data Expression =
-            And [Expression]
-            | Or [Expression]
-            | Not Expression
+import Hsat.Boolish
+
+data Expression a =
+            And [Expression a]
+            | Or [Expression a]
+            | Not (Expression a)
             | Free String
-            | Const Bool
+            | Const a
             deriving (Show, Eq)
 
-replace :: String 
-           -> Bool 
-           -> Expression 
-           -> Expression
-replace v b ex = 
+instance Functor Expression where
+  fmap f ex = 
+    case ex of
+      Free s -> (Free s)
+      Const e -> Const $ f e
+      Not e -> Not $ fmap f e
+      And exs -> And $ fmap (f <$>) exs     
+      Or exs -> Or $ fmap (f <$>) exs
+
+replace :: (Boolish a) => String 
+           -> a 
+           -> Expression a
+           -> Expression a
+replace v a ex = 
   case ex of
-    (Free s) -> if s == v then Const b else Free s
-    (And exs) -> And $ replaceAll v b exs
-    (Or exs) -> Or $ replaceAll v b exs
-    Not e -> Not $ replace v b e
+    (Free s) -> if s == v then Const a else Free s
+    (And exs) -> And $ replaceAll v a exs
+    (Or exs) -> Or $ replaceAll v a exs
+    Not e -> Not $ replace v a e
     _ -> ex
 
-replaceAll :: String -> Bool -> [Expression] -> [Expression]
-replaceAll v b exs = fmap (replace v b) exs
+replaceAll :: (Boolish a) => String -> a -> [Expression a] -> [Expression a]
+replaceAll v a exs = fmap (replace v a) exs
 
-simplify :: Expression -> Expression
-simplify ex = 
-  case ex of
-    (Const b) -> Const b
-    (Free s) -> Free s
-    (Not e) -> 
-      case simplify e of
-        (Const bb) -> Const $ not bb
-        _ -> Not $ simplify e
-    (Or exs) -> case elem (Const True) exs of
-                True -> Const True
-                False -> Or $ fmap simplify $ 
-                                 filter (\ex -> ex /= (Const False)) exs
-    (And exs) -> case elem (Const False) exs of
-                   True -> Const False
-                   False -> And $ fmap simplify $
-                                     filter (\ex -> ex /= (Const True)) exs
-  
-satisfiable :: Expression -> Maybe Bool
+satisfiable :: (Boolish a, Eq a) => Expression a -> Maybe Bool
 satisfiable ex = 
   case ex of
-    (Const b) -> Just b
+    (Const b) -> Just $ truth b
     (Free s) -> Nothing
     (Not e) -> case satisfiable e of
                  Nothing -> Nothing
-                 Just b -> Just $ not b
+                 Just b -> Just . not $ truth b
     (Or exs) -> do
                   checked <- mapM satisfiable exs
-                  pure $ foldl1 (||) checked
+                  pure $ or checked
     (And exs) -> do
                   checked <-  mapM satisfiable exs
-                  pure $ foldl1 (&&) checked
+                  pure $ and checked
 
 
-freeVars :: Expression -> [String]
+freeVars :: Expression a -> [String]
 freeVars ex = 
   case ex of
     (Const b) -> []

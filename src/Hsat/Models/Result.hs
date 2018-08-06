@@ -2,6 +2,6 @@ module Hsat.Models.Result where
 
 import qualified Data.Map as M
 
-type ValueMap = M.Map String Bool
+type ValueMap a = M.Map String a
 
-data Result = Success ValueMap | Failure deriving (Show, Eq)
+data Result a = Success (ValueMap a) | Failure deriving (Show, Eq)

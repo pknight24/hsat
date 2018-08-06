@@ -1,18 +1,25 @@
 module Hsat.Algorithms.Backtracking (solve) where
 
 import qualified Data.Map as M
+import qualified Data.Set as S
 
 import Hsat.Models.Expression
 import Hsat.Models.Result
+import Hsat.Boolish
 
-totallySat :: [Expression] -> Bool
+totallySat :: (Boolish a, Eq a) => [Expression a] -> Bool
 totallySat exs = all (\a -> a == (Just True)) $ 
                    fmap satisfiable exs
 
-makeAGuess :: String -> Bool -> [Expression] -> ValueMap -> ([Expression], ValueMap)
+makeAGuess :: (Boolish a) => 
+              String -> 
+              a ->
+              [Expression a] -> 
+              ValueMap a -> 
+              ([Expression a], ValueMap a)
 makeAGuess s v exs vm = (replaceAll s v exs, M.insert s v vm)
 
-backtrack :: [Expression] -> ValueMap ->Result
+backtrack :: [Expression Bool] -> ValueMap Bool -> Result Bool
 backtrack exs state = 
   case concat $ fmap freeVars exs of
     [] -> case totallySat exs of
@@ -26,9 +33,11 @@ backtrack exs state =
               
 
 
-solve :: [Expression] -> Result
+solve :: (Boolish a, Eq a) => [Expression a] -> Result (S.Set a)
 solve exs = 
  case elem (Just False) $ fmap satisfiable exs of
  True -> Failure -- the expressions can't be satisfied
- False -> backtrack exs $ M.empty
-          
+ False -> let result = backtrack (fmap (truth <$>) exs) M.empty in
+          case result of
+            Failure -> Failure
+            Success s -> Success $ fmap untruth s
